@@ -82,7 +82,7 @@ CGAlgorithms::PointList CGAlgorithms::grahamScanCH(PointList points)
             Point p2 = S.top();
             Point p1 = S.nextToTop();
 
-            if( _direction2(p1,p2,p3) > 0 )
+            if( _direction(p1,p2,p3) > 0 )
             {
                 S.pop();
             }
@@ -102,6 +102,159 @@ CGAlgorithms::PointList CGAlgorithms::grahamScanCH(PointList points)
     return conveHullList;
 }
 
+CGAlgorithms::PointList CGAlgorithms::_quickHull(PointList points,
+                                                 Point p1,
+                                                 Point p2)
+{
+    if( points.empty() )
+    {
+        PointList hullList;
+
+        hullList.push_back(p1);
+
+//        hullList.push_back(p2);
+
+        return hullList;
+    }
+
+    int maxArea = INT_MIN;
+
+    int area;
+
+    Point p3;
+
+    Point pSelect;
+
+    PointList leftPoints;
+
+    PointList rightPoints;
+
+    PointList hullList;
+
+    PointList leftHullList;
+
+    PointList rightHullList;
+
+    for(unsigned i=0; i < points.size(); i++)
+    {
+        pSelect = points.at(i);
+
+        area = _area(p1,p2,pSelect);
+
+        if( area > maxArea )
+        {
+            maxArea = area;
+
+            p3 = pSelect;
+        }
+        else if( area == maxArea)
+        {
+
+        }
+    }
+
+    for(unsigned i=0; i < points.size(); i++)
+    {
+        pSelect = points.at(i);
+
+        area = _area(p1,p3,pSelect);
+
+        if( area > 0 )
+        {
+            leftPoints.push_back(pSelect);
+        }
+    }
+
+    for(unsigned i=0; i < points.size(); i++)
+    {
+        pSelect = points.at(i);
+
+        area = _area(p3,p2,pSelect);
+
+        if( area > 0 )
+        {
+            rightPoints.push_back(pSelect);
+        }
+    }
+
+    leftHullList = _quickHull(leftPoints,p1,p3);
+
+    rightHullList = _quickHull(rightPoints,p3,p2);
+
+    for(unsigned i=0; i<leftHullList.size();i++)
+    {
+        hullList.push_back(leftHullList.at(i));
+    }
+
+    for(unsigned i=0; i<rightHullList.size();i++)
+    {
+        hullList.push_back(rightHullList.at(i));
+    }
+
+    return hullList;
+}
+
+CGAlgorithms::PointList CGAlgorithms::quickHull(PointList points)
+{
+    Point p1;
+
+    Point p11;
+
+    Point p2;
+
+    Point p22;
+
+    Point p3;
+
+    PointList hullList;
+
+    PointList leftHullList;
+
+    PointList rightHullList;
+
+    _findMinX(points,p1,p11);
+
+    _findMaxX(points,p2,p22);
+
+    PointList leftPoints;
+
+    PointList rightPoints;
+
+    int area;
+
+    for(unsigned i=0; i < points.size(); i++)
+    {
+        p3 = points.at(i);
+
+        area = _area(p1,p2,p3);
+
+        if( area > 0 )
+        {
+            leftPoints.push_back(p3);
+        }
+        else if( area < 0 )
+        {
+            rightPoints.push_back(p3);
+        }
+    }
+
+    leftHullList = _quickHull(leftPoints,p11,p22);
+
+    rightHullList = _quickHull(rightPoints,p2,p1);
+
+    for(unsigned i=0; i<leftHullList.size();i++)
+    {
+        hullList.push_back(leftHullList.at(i));
+    }
+
+    for(unsigned i=0; i<rightHullList.size();i++)
+    {
+        hullList.push_back(rightHullList.at(i));
+    }
+
+    return hullList;
+}
+
 int CGAlgorithms::_direction(Point pi,
                      Point pj,
                      Point pk)
@@ -112,7 +265,7 @@ int CGAlgorithms::_direction(Point pi,
     return (pk.x() - pi.x())*(pj.y() - pi.y()) - (pj.x() - pi.x())*(pk.y() - pi.y());
 }
 
-int CGAlgorithms::_direction2(Point p1, Point p2, Point p3)
+int CGAlgorithms::_area(Point p1, Point p2, Point p3)
 {
     /*
      *  | x1 x2 x3 |
@@ -121,7 +274,7 @@ int CGAlgorithms::_direction2(Point p1, Point p2, Point p3)
      *
      *  is +ve means p3 is left of p1-p2
      */
-    return -(p1.x()*(p2.y()-p3.y())+p2.x()*(p3.y()-p1.y())+p3.x()*(p1.y()-p2.y()));
+    return (p1.x()*(p2.y()-p3.y())+p2.x()*(p3.y()-p1.y())+p3.x()*(p1.y()-p2.y()));
 }
 
 bool CGAlgorithms::_onSegment(Point pi,
@@ -172,6 +325,88 @@ Point CGAlgorithms::_findMinY(PointList points)
     }
 
     return p0;
+}
+
+bool CGAlgorithms::_findMinX(PointList points,
+                              Point& p1, Point& p11)
+{
+    bool twoPoints = false;
+
+    p1.setX(INT_MAX);
+    p1.setY(INT_MAX);
+
+    p11.setX(INT_MIN);
+    p11.setY(INT_MIN);
+
+    for(unsigned i=0; i < points.size(); i++)
+    {
+        if( points.at(i).x() < p1.x() )
+        {
+            p1.setY(points.at(i).y());
+
+            p1.setX(points.at(i).x());
+
+            p11 = p1;
+
+            twoPoints = false;
+        }
+        else if(points.at(i).x() == p1.x() )
+        {
+            twoPoints = true;
+
+            if( points.at(i).y() < p1.y() )
+            {
+               p1.setY(points.at(i).y());
+            }
+            else if ( points.at(i).y() > p11.y() )
+            {
+               p11.setY(points.at(i).y());
+            }
+        }
+    }
+
+    return twoPoints;
+}
+
+bool CGAlgorithms::_findMaxX(PointList points,
+                             Point &p2, Point &p22)
+{
+    bool twoPoints = false;
+
+    p2.setX(INT_MIN);
+    p2.setY(INT_MIN);
+
+    p22.setX(INT_MIN);
+    p22.setY(INT_MIN);
+
+    for(unsigned i=0; i < points.size(); i++)
+    {
+        if( points.at(i).x() > p2.x() )
+        {
+            p2.setY(points.at(i).y());
+
+            p2.setX(points.at(i).x());
+
+            p22 = p2;
+
+            twoPoints = false;
+        }
+        else if(points.at(i).x() == p2.x() )
+        {
+            twoPoints = true;
+
+            if( points.at(i).y() < p2.y() )
+            {
+               p2.setY(points.at(i).y());
+            }
+            else if ( points.at(i).y() > p22.y() )
+            {
+               p22.setY(points.at(i).y());
+            }
+        }
+    }
+
+    return twoPoints;
 }
 
 void CGAlgorithms::_removePointFromList(PointList &points, Point point)
